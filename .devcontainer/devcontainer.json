@@ -3,5 +3,17 @@
   "features": {
     "ghcr.io/joedmck/devcontainer-features/cdktf:1": {},
     "ghcr.io/dhoeric/features/google-cloud-cli:1": {}
+  },
+  "customizations": {
+    // Configure properties specific to VS Code.
+    "vscode": {
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+        "editorconfig.editorconfig",
+        "github.copilot",
+        "googlecloudtools.cloudcode"
+      ]
+    }
   }
+  
 }
