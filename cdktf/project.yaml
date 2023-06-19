@@ -1,3 +1,4 @@
 projectMeta:
-  project: "ite3101-assignment"
-  region: "us-central-1"
+  project: "vertex-ai-chat-apps3"
+  region: "us-east1"
+  billingAccount: "015D05-6F0A99-FAB542"

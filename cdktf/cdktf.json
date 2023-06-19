@@ -3,7 +3,9 @@
   "app": "npx ts-node main.ts",
   "projectId": "24ebce49-1d15-4239-b6c8-db6875c0bf73",
   "sendCrashReports": "true",
-  "terraformProviders": [],
+  "terraformProviders": [    
+    "google-beta@~>4.69.1"
+  ],
   "terraformModules": [],
   "context": {
 
