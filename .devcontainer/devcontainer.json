@@ -1,6 +1,7 @@
 {
   "image": "mcr.microsoft.com/devcontainers/universal:2",
   "features": {
+    "ghcr.io/devcontainers-contrib/features/terraform-asdf:2": {},
     "ghcr.io/joedmck/devcontainer-features/cdktf:1": {},
     "ghcr.io/dhoeric/features/google-cloud-cli:1": {}
   },
