@@ -10,6 +10,8 @@ import { GoogleFirebaserulesRelease } from "./.gen/providers/google-beta/google-
 
 import { GoogleIdentityPlatformConfig } from "./.gen/providers/google-beta/google-identity-platform-config";
 import { GoogleIdentityPlatformProjectDefaultConfig } from "./.gen/providers/google-beta/google-identity-platform-project-default-config";
+import { GoogleAppEngineApplication } from "./.gen/providers/google-beta/google-app-engine-application";
+import { GoogleFirebaseStorageBucket } from "./.gen/providers/google-beta/google-firebase-storage-bucket";
 
 
 import { GoogleProject } from "./.gen/providers/google-beta/google-project";
@@ -57,6 +59,8 @@ class VertexAiChatAppStack extends TerraformStack {
       "serviceusage.googleapis.com",
       "firestore.googleapis.com",
       "firebaserules.googleapis.com",
+      "firebasestorage.googleapis.com",
+      "storage.googleapis.com"
     ];
     const services = [];
     for (const api of apis) {
@@ -124,7 +128,7 @@ class VertexAiChatAppStack extends TerraformStack {
       dependsOn: [googleFirebaseProject],
     });
 
-    const googleFirebaserulesRuleset = new GoogleFirebaserulesRuleset(this, `firebaserules-ruleset`, {
+    const firestoreGoogleFirebaserulesRuleset = new GoogleFirebaserulesRuleset(this, `firestore-firebaserules-ruleset`, {
       project: project.name,
       provider: googleBetaProvider,
       source: {
@@ -162,16 +166,69 @@ class VertexAiChatAppStack extends TerraformStack {
       dependsOn: [googleFirestoreDatabase],
     });
 
-    new GoogleFirebaserulesRelease(this, `firebaserules-release`, {
+    new GoogleFirebaserulesRelease(this, `firestore-firebaserules-release`, {
       project: project.name,
       provider: googleBetaProvider,
       name: "firestore.rules",
-      rulesetName: googleFirebaserulesRuleset.name,
+      rulesetName: firestoreGoogleFirebaserulesRuleset.name,
       lifecycle: {
         //A hack to solve keysToSnakeCase Maximum call stack size exceeded
-        replaceTriggeredBy: ["google_firebaserules_ruleset.firebaserules-ruleset"]
+        replaceTriggeredBy: ["google_firebaserules_ruleset.firestore-firebaserules-ruleset"]
       },
-      dependsOn: [googleFirebaserulesRuleset],
+      dependsOn: [firestoreGoogleFirebaserulesRuleset],
+    });
+
+    const googleAppEngineApplication = new GoogleAppEngineApplication(this, `app-engine-application`, {
+      project: project.name,
+      provider: googleBetaProvider,
+      locationId: region,
+      databaseType: "CLOUD_FIRESTORE",
+      dependsOn: [googleFirestoreDatabase],
+    });
+
+    const googleFirebaseStorageBucket = new GoogleFirebaseStorageBucket(this, `firebase-storage-bucket`, {
+      project: project.name,
+      provider: googleBetaProvider,
+      bucketId: googleAppEngineApplication.defaultBucket,     
+      dependsOn: [googleFirebaseProject],
+    });
+
+    const storageGoogleFirebaserulesRuleset = new GoogleFirebaserulesRuleset(this, `storage-firebaserules-ruleset`, {
+      project: project.name,
+      provider: googleBetaProvider,
+      source: {
+        files: [{
+          name: "storage.rules",
+          content: `// Returns true if the uploaded file is an image and its size is below the given number of MB.
+          function isImageBelowMaxSize(maxSizeMB) {
+            return request.resource.size < maxSizeMB * 1024 * 1024
+                && request.resource.contentType.matches('image/.*');
+          }
+          
+          service firebase.storage {
+            match /b/{bucket}/o {
+              match /{userId}/{messageId}/{fileName} {
+                allow write: if request.auth != null && request.auth.uid == userId && isImageBelowMaxSize(5);
+                allow read;
+              }
+            }
+          }          
+          `
+        }]
+      },
+      dependsOn: [googleFirebaseStorageBucket],
+    });
+
+    new GoogleFirebaserulesRelease(this, `storage-firebaserules-release`, {
+      project: project.name,
+      provider: googleBetaProvider,
+      name: "firebase.storage/"+googleAppEngineApplication.defaultBucket,
+      rulesetName: `projects/${project.name}/rulesets/${storageGoogleFirebaserulesRuleset.name}`,
+      lifecycle: {
+        //A hack to solve keysToSnakeCase Maximum call stack size exceeded
+        replaceTriggeredBy: ["google_firebaserules_ruleset.firestore-firebaserules-ruleset"]
+      },
+      dependsOn: [storageGoogleFirebaserulesRuleset],
     });
 
 
