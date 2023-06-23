@@ -22,7 +22,7 @@
   "dependencies": {
     "@types/js-yaml": "^4.0.5",
     "cdktf": "^0.17.0",
-    "constructs": "^10.2.52",
+    "constructs": "^10.2.57",
     "log4js": "^6.9.1"
   },
   "devDependencies": {

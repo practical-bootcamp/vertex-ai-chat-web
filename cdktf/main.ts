@@ -26,11 +26,13 @@ import { DataGoogleIamPolicy } from "./.gen/providers/google-beta/data-google-ia
 class VertexAiChatAppStack extends TerraformStack {
   constructor(scope: Construct, id: string, projectInfo: ProjectInfo) {
     super(scope, id);
+    const region = projectInfo.projectMeta?.region!;
+
     // new GoogleProvider(this, `provider-${projectInfo.projectMeta?.project}-${projectInfo.projectMeta?.region}`, projectInfo.projectMeta);
     const googleBetaProvider = new GoogleBetaProvider(this, `beta-provider`, {
       alias: "no_user_project_override",
       userProjectOverride: true,
-      region: projectInfo.projectMeta?.region,
+      region: region,
     });
 
     const billingAccount = new DataGoogleBillingAccount(this, "billing-account", {
@@ -116,7 +118,7 @@ class VertexAiChatAppStack extends TerraformStack {
       project: project.name,
       provider: googleBetaProvider,
       name: "default",
-      locationId: projectInfo.projectMeta?.region!,
+      locationId: region,
       type: "FIRESTORE_NATIVE",
       concurrencyMode: "OPTIMISTIC",
       dependsOn: [googleFirebaseProject],
@@ -124,7 +126,7 @@ class VertexAiChatAppStack extends TerraformStack {
 
     const googleFirebaserulesRuleset = new GoogleFirebaserulesRuleset(this, `firebaserules-ruleset`, {
       project: project.name,
-      provider: googleBetaProvider,      
+      provider: googleBetaProvider,
       source: {
         files: [{
           name: "firestore.rules",
@@ -166,9 +168,10 @@ class VertexAiChatAppStack extends TerraformStack {
       name: "firestore.rules",
       rulesetName: googleFirebaserulesRuleset.name,
       lifecycle: {
-        replaceTriggeredBy: [googleFirebaserulesRuleset.name]
+        //A hack to solve keysToSnakeCase Maximum call stack size exceeded
+        replaceTriggeredBy: ["google_firebaserules_ruleset.firebaserules-ruleset"]
       },
-      dependsOn: [googleFirestoreDatabase],
+      dependsOn: [googleFirebaserulesRuleset],
     });
 
 
