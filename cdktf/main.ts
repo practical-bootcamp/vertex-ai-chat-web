@@ -3,6 +3,7 @@ import { App, TerraformStack } from "cdktf";
 import { GoogleBetaProvider } from "./.gen/providers/google-beta/provider/index";
 import { GoogleFirebaseProject } from "./.gen/providers/google-beta/google-firebase-project";
 import { GoogleFirebaseWebApp } from "./.gen/providers/google-beta/google-firebase-web-app";
+import { GoogleIdentityPlatformDefaultSupportedIdpConfig } from "./.gen/providers/google-beta/google-identity-platform-default-supported-idp-config";
 
 import { GoogleFirestoreDatabase } from "./.gen/providers/google-beta/google-firestore-database";
 import { GoogleFirebaserulesRuleset } from "./.gen/providers/google-beta/google-firebaserules-ruleset";
@@ -56,6 +57,7 @@ class VertexAiChatAppStack extends TerraformStack {
       "cloudbilling.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "firebase.googleapis.com",
+      "identitytoolkit.googleapis.com",
       "serviceusage.googleapis.com",
       "firestore.googleapis.com",
       "firebaserules.googleapis.com",
@@ -93,20 +95,30 @@ class VertexAiChatAppStack extends TerraformStack {
       dependsOn: [googleFirebaseProject],
     })
 
-    new GoogleIdentityPlatformProjectDefaultConfig(this, `identity-platform-default-config`, {
+    const googleIdentityPlatformProjectDefaultConfig = new GoogleIdentityPlatformProjectDefaultConfig(this, `identity-platform-default-config`, {
       project: project.name,
       provider: googleBetaProvider,
       signIn: {
         allowDuplicateEmails: false,
-        anonymous: {
-          enabled: true
-        },
-        email: {
-          enabled: true,
-          passwordRequired: false,
-        }
+        // anonymous: {
+        //   enabled: true
+        // },
+        // email: {
+        //   enabled: true,
+        //   passwordRequired: false,
+        // }
       },
       dependsOn: [googleIdentityPlatformConfig],
+    })
+
+    new GoogleIdentityPlatformDefaultSupportedIdpConfig(this, `identity-platform-default-supported-idp-config`, {
+      project: project.name,
+      provider: googleBetaProvider,
+      idpId: "google.com",
+      clientId: projectInfo.projectMeta?.clientId!,
+      clientSecret: projectInfo.projectMeta?.clientSecret!,
+      enabled: true,
+      dependsOn: [googleIdentityPlatformProjectDefaultConfig],
     })
 
     // const googleFirebaseWebApp =     
@@ -189,7 +201,7 @@ class VertexAiChatAppStack extends TerraformStack {
     const googleFirebaseStorageBucket = new GoogleFirebaseStorageBucket(this, `firebase-storage-bucket`, {
       project: project.name,
       provider: googleBetaProvider,
-      bucketId: googleAppEngineApplication.defaultBucket,     
+      bucketId: googleAppEngineApplication.defaultBucket,
       dependsOn: [googleFirebaseProject],
     });
 
@@ -222,7 +234,7 @@ class VertexAiChatAppStack extends TerraformStack {
     new GoogleFirebaserulesRelease(this, `storage-firebaserules-release`, {
       project: project.name,
       provider: googleBetaProvider,
-      name: "firebase.storage/"+googleAppEngineApplication.defaultBucket,
+      name: "firebase.storage/" + googleAppEngineApplication.defaultBucket,
       rulesetName: `projects/${project.name}/rulesets/${storageGoogleFirebaserulesRuleset.name}`,
       lifecycle: {
         //A hack to solve keysToSnakeCase Maximum call stack size exceeded

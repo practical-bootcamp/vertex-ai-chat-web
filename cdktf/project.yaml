@@ -2,3 +2,5 @@ projectMeta:
   project: "vertex-ai-chat-apps5"
   region: "asia-east2"
   billingAccount: "015D05-6F0A99-FAB542"
+  clientId: ""
+  clientSecret: ""
