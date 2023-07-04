@@ -2,6 +2,7 @@ import { Construct } from "constructs";
 import { App, TerraformStack } from "cdktf";
 import { GoogleBetaProvider } from "./.gen/providers/google-beta/provider/index";
 import { GoogleFirebaseProject } from "./.gen/providers/google-beta/google-firebase-project";
+import { GoogleProjectIamBinding } from "./.gen/providers/google-beta/google-project-iam-binding";
 import { GoogleFirebaseWebApp } from "./.gen/providers/google-beta/google-firebase-web-app";
 import { GoogleIdentityPlatformDefaultSupportedIdpConfig } from "./.gen/providers/google-beta/google-identity-platform-default-supported-idp-config";
 
@@ -88,6 +89,13 @@ class VertexAiChatAppStack extends TerraformStack {
       dependsOn: [...services, project, googleProjectIamPolicy]
     })
 
+
+    new GoogleProjectIamBinding(this, `project-iam-binding`, {
+      project: project.name,
+      members: ["serviceAccount:firebase-service-account@firebase-sa-management.iam.gserviceaccount.com"],
+      role: "roles/storage.objectAdmin",
+    });
+
     const googleIdentityPlatformConfig = new GoogleIdentityPlatformConfig(this, `identity-platform-config`, {
       project: project.name,
       provider: googleBetaProvider,
@@ -146,7 +154,9 @@ class VertexAiChatAppStack extends TerraformStack {
       source: {
         files: [{
           name: "firestore.rules",
-          content: `service cloud.firestore {
+          content: `
+          rules_version = "2";
+          service cloud.firestore {
             match /databases/{database}/documents {
               // Messages:
               //   - Anyone can read.
@@ -211,7 +221,9 @@ class VertexAiChatAppStack extends TerraformStack {
       source: {
         files: [{
           name: "storage.rules",
-          content: `// Returns true if the uploaded file is an image and its size is below the given number of MB.
+          content: `
+          rules_version = "2";
+          // Returns true if the uploaded file is an image and its size is below the given number of MB.
           function isImageBelowMaxSize(maxSizeMB) {
             return request.resource.size < maxSizeMB * 1024 * 1024
                 && request.resource.contentType.matches('image/.*');
